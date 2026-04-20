@@ -1,0 +1,62 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mqnode}
+      POSTGRES_USER: ${POSTGRES_USER:-mqnode}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mqnode}
+    ports:
+      - '5432:5432'
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+
+  btc-listener:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    command: ["python", "-m", "mqnode.chains.btc.listener"]
+    depends_on: [postgres, redis]
+
+  btc-primitive-worker:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    command: ["python", "-m", "mqnode.workers.run_worker", "--queue", "btc_primitive"]
+    depends_on: [postgres, redis]
+
+  btc-network-worker:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    command: ["python", "-m", "mqnode.workers.run_worker", "--queue", "btc_network"]
+    depends_on: [postgres, redis]
+
+  btc-miner-worker:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    command: ["python", "-m", "mqnode.workers.run_worker", "--queue", "btc_miner"]
+    depends_on: [postgres, redis]
+
+  btc-market-worker:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    command: ["python", "-m", "mqnode.workers.run_worker", "--queue", "btc_market"]
+    depends_on: [postgres, redis]
+
+  mqnode-api:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    command: ["uvicorn", "mqnode.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    ports:
+      - '8000:8000'
+    depends_on: [postgres, redis]
