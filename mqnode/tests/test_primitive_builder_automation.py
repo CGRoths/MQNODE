@@ -30,9 +30,10 @@ def _sample_blocks():
             'event_time': datetime(2026, 4, 20, 0, 1, tzinfo=timezone.utc),
             'tx_count': 10,
             'non_coinbase_tx_count': 9,
-            'total_out_sat': 1000,
+            'total_out_sat': 312501100,
             'total_fee_sat': 100,
             'issued_sat': 312500000,
+            'miner_revenue_sat': 312500100,
             'input_count': 20,
             'output_count': 30,
             'block_size_bytes': 1000,
@@ -57,9 +58,10 @@ def _sample_blocks():
             'event_time': datetime(2026, 4, 20, 0, 7, tzinfo=timezone.utc),
             'tx_count': 12,
             'non_coinbase_tx_count': 11,
-            'total_out_sat': 1200,
+            'total_out_sat': 312501320,
             'total_fee_sat': 120,
             'issued_sat': 312500000,
+            'miner_revenue_sat': 312500120,
             'input_count': 24,
             'output_count': 32,
             'block_size_bytes': 1200,
@@ -111,8 +113,8 @@ def test_rebuild_10m_bucket_is_idempotent(monkeypatch):
         'halving_epoch': 0,
         'total_out_sat_10m': 2200,
         'total_fee_sat_10m': 220,
-        'transferred_sat_10m': 2420,
-        'transferred_btc_10m': 0.0000242,
+        'transferred_sat_10m': 2200,
+        'transferred_btc_10m': 0.000022,
         'tx_count_10m': 22,
         'non_coinbase_tx_count_10m': 20,
         'input_count_10m': 44,
@@ -139,7 +141,7 @@ def test_rebuild_10m_bucket_is_idempotent(monkeypatch):
         'spent_output_count_10m': 44,
         'created_output_count_10m': 62,
         'segwit_tx_count_10m': 12,
-        'segwit_share_10m': 12 / 22,
+        'segwit_share_10m': 12 / 20,
         'sw_total_size_bytes_10m': 1150,
         'sw_total_weight_wu_10m': 4500,
         'difficulty_last': 2,
@@ -218,6 +220,9 @@ def test_build_10m_bucket_keeps_price_fields_when_price_exists(monkeypatch):
 
     assert payload['tx_count_10m'] == 22
     assert payload['supply_total_sat'] == 100312500000
+    assert payload['transferred_sat_10m'] == 2200
+    assert payload['miner_revenue_sat_10m'] == 625000220
+    assert payload['segwit_share_10m'] == 12 / 20
     assert payload['open_price_usd'] == 88000
     assert payload['high_price_usd'] == 88500
     assert payload['low_price_usd'] == 87900

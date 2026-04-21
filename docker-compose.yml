@@ -8,12 +8,22 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-mqnode}
       POSTGRES_USER: ${POSTGRES_USER:-mqnode}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mqnode}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mqnode} -d ${POSTGRES_DB:-mqnode}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
       - '5432:5432'
 
   redis:
     image: redis:7
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     ports:
       - '6379:6379'
 
@@ -22,35 +32,64 @@ services:
     restart: unless-stopped
     env_file: .env
     command: ["python", "-m", "mqnode.chains.btc.listener"]
-    depends_on: [postgres, redis]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   btc-primitive-worker:
     build: .
     restart: unless-stopped
     env_file: .env
     command: ["python", "-m", "mqnode.workers.run_worker", "--queue", "btc_primitive"]
-    depends_on: [postgres, redis]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   btc-network-worker:
     build: .
     restart: unless-stopped
     env_file: .env
     command: ["python", "-m", "mqnode.workers.run_worker", "--queue", "btc_network"]
-    depends_on: [postgres, redis]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   btc-miner-worker:
     build: .
     restart: unless-stopped
     env_file: .env
     command: ["python", "-m", "mqnode.workers.run_worker", "--queue", "btc_miner"]
-    depends_on: [postgres, redis]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   btc-market-worker:
     build: .
     restart: unless-stopped
     env_file: .env
     command: ["python", "-m", "mqnode.workers.run_worker", "--queue", "btc_market"]
-    depends_on: [postgres, redis]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  btc-price-composer:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    command: ["python", "-m", "mqnode.market.price.runtime", "compose"]
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   mqnode-api:
     build: .
@@ -59,4 +98,8 @@ services:
     command: ["uvicorn", "mqnode.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - '8000:8000'
-    depends_on: [postgres, redis]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy

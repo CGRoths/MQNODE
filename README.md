@@ -50,12 +50,14 @@ mqnode/
     schema.sql
     migrations.py
     repositories.py
+    sql_versions/
   market/
     price/
       checkpoints.py
       composer.py
       normalize.py
       registry.py
+      runtime.py
       sources/
         bitstamp.py
         bybit.py
@@ -79,7 +81,10 @@ mqnode/
     metric_registry.py
     dynamic_loader.py
   scripts/
+    compose_prices.py
+    ingest_price_source.py
     init_db.py
+    reconcile_btc.py
     seed_registry.py
     backfill_btc.py
   tests/
@@ -236,6 +241,7 @@ When the listener is idle, it also schedules a primitive tick so the current 10-
 2. They load enabled metric rows from `metric_registry`.
 3. Each metric runs in isolation and writes its own output table.
 4. Worker startup includes replay from the latest primitive checkpoint so crash recovery does not depend only on queued jobs.
+5. Metric dependencies declared in `metric_registry.dependencies` are checked before execution.
 
 ## Checkpoints
 
@@ -251,6 +257,12 @@ Important components:
 
 On failure, checkpoint status becomes `error` with `error_message`.
 
+## Migration Discipline
+
+- `mqnode/db/migrations.py` now applies a tracked schema snapshot plus numbered SQL files from `mqnode/db/sql_versions/`.
+- `scripts/init_db.py` applies migrations instead of relying on an untracked bootstrap only.
+- New additive schema changes should be introduced through a new numbered SQL file.
+
 ## Health / Observability
 
 `/health` and `/api/v1/btc/health` surface:
@@ -262,6 +274,7 @@ On failure, checkpoint status becomes `error` with `error_message`.
 - lag vs node tip
 - checkpoint error visibility
 - worker stale visibility through heartbeat checkpoints
+- queue depth visibility for the active RQ lanes
 
 ## Manual Commands
 
@@ -286,6 +299,16 @@ python scripts/init_db.py
 Seed metric registry and price source registry:
 ```bash
 python scripts/seed_registry.py
+```
+
+Compose canonical prices from raw venue tables:
+```bash
+python scripts/compose_prices.py
+```
+
+Check and reconcile BTC reorg drift:
+```bash
+python scripts/reconcile_btc.py
 ```
 
 Run listener locally:

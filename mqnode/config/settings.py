@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     postgres_db: str = Field('mqnode', alias='POSTGRES_DB')
     postgres_user: str = Field('mqnode', alias='POSTGRES_USER')
     postgres_password: str = Field('mqnode', alias='POSTGRES_PASSWORD')
+    postgres_pool_minconn: int = Field(1, alias='POSTGRES_POOL_MINCONN')
+    postgres_pool_maxconn: int = Field(10, alias='POSTGRES_POOL_MAXCONN')
 
     redis_host: str = Field('redis', alias='REDIS_HOST')
     redis_port: int = Field(6379, alias='REDIS_PORT')
@@ -35,6 +37,7 @@ class Settings(BaseSettings):
     worker_heartbeat_seconds: int = Field(60, alias='WORKER_HEARTBEAT_SECONDS')
     worker_stale_after_seconds: int = Field(180, alias='WORKER_STALE_AFTER_SECONDS')
     worker_startup_replay: bool = Field(True, alias='WORKER_STARTUP_REPLAY')
+    price_composer_sleep_seconds: int = Field(30, alias='PRICE_COMPOSER_SLEEP_SECONDS')
 
     @property
     def postgres_dsn(self) -> str:

@@ -4,16 +4,39 @@ from datetime import datetime, timezone
 
 from mqnode.chains.btc.block_parser import parse_block
 from mqnode.chains.btc.rpc import BitcoinRPC
+from mqnode.core.errors import ValidationError
 
 
 def _to_dt(ts):
+    """Convert a Unix timestamp into a UTC datetime for database writes."""
     return datetime.fromtimestamp(ts, tz=timezone.utc) if ts is not None else None
 
 
 def ingest_block(cur, rpc: BitcoinRPC, height: int, last_supply_sat: int) -> int:
+    """Fetch, validate, and upsert one block into the raw and primitive block tables."""
     block_hash = rpc.get_block_hash(height)
     block = rpc.get_block(block_hash)
+    if int(block['height']) != int(height):
+        raise ValidationError(f'Block height mismatch: requested height={height}, rpc returned height={block["height"]}')
     raw, primitive = parse_block(block, cumulative_supply_sat_prev=last_supply_sat)
+
+    if height > 0:
+        cur.execute('SELECT block_hash FROM btc_blocks_raw WHERE height = %s', (height - 1,))
+        previous_row = cur.fetchone()
+        expected_previous_hash = raw.get('previous_block_hash')
+        if previous_row and expected_previous_hash and previous_row['block_hash'] != expected_previous_hash:
+            raise ValidationError(
+                f'Block continuity check failed at height={height}: '
+                f'expected previous hash {expected_previous_hash}, found {previous_row["block_hash"]}'
+            )
+
+    cur.execute('SELECT block_hash FROM btc_blocks_raw WHERE height = %s', (height,))
+    current_row = cur.fetchone()
+    if current_row and current_row['block_hash'] != raw['block_hash']:
+        raise ValidationError(
+            f'Block hash mismatch at height={height}: '
+            f'existing hash {current_row["block_hash"]}, incoming hash {raw["block_hash"]}'
+        )
 
     cur.execute(
         '''

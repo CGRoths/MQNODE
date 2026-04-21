@@ -230,6 +230,18 @@ CREATE TABLE IF NOT EXISTS mq_btc_price_10m (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS btc_reorg_events (
+  id BIGSERIAL PRIMARY KEY,
+  detected_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  previous_checkpoint_height BIGINT NOT NULL,
+  common_height BIGINT NOT NULL,
+  diverged_height BIGINT NOT NULL,
+  rollback_bucket_start_utc TIMESTAMPTZ,
+  old_block_hash TEXT,
+  canonical_block_hash TEXT,
+  notes TEXT
+);
+
 CREATE TABLE IF NOT EXISTS btc_nvt_10m (
   bucket_start_utc TIMESTAMPTZ PRIMARY KEY,
   price_usd NUMERIC,
@@ -274,3 +286,6 @@ ON btc_primitive_10m(last_height);
 
 CREATE INDEX IF NOT EXISTS idx_mq_btc_price_10m_updated_at
 ON mq_btc_price_10m(updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_btc_reorg_events_detected_at
+ON btc_reorg_events(detected_at DESC);
