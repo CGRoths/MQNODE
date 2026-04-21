@@ -7,6 +7,7 @@ from mqnode.checkpoints.checkpoint_service import checkpoint_error, checkpoint_o
 from mqnode.config.settings import get_settings
 from mqnode.db.connection import DB
 from mqnode.db.repositories import get_checkpoint
+from mqnode.registry.dependency_validator import validate_metric_dependencies
 from mqnode.registry.dynamic_loader import load_function
 from mqnode.registry.metric_registry import get_enabled_metrics
 
@@ -37,6 +38,7 @@ class WorkerBase:
             metric_interval = metric['interval']
             component = self._metric_component(metric['metric_name'], metric_interval)
             try:
+                validate_metric_dependencies(self.db, metric, source_bucket_start_utc)
                 fn = load_function(metric['module_path'], metric['function_name'])
                 fn(self.db, source_bucket_start_utc, metric_interval)
                 with self.db.cursor() as cur:

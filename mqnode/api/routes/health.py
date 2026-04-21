@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from fastapi import APIRouter
+from rq import Queue
 
 from mqnode.chains.btc.listener import RAW_COMPONENT
 from mqnode.chains.btc.primitive_builder import PRIMITIVE_COMPONENT, PRIMITIVE_INTERVAL
@@ -10,6 +11,8 @@ from mqnode.market.price.checkpoints import PRICE_CANONICAL_COMPONENT
 from mqnode.chains.btc.rpc import BitcoinRPC
 from mqnode.config.settings import get_settings
 from mqnode.db.connection import DB
+from mqnode.queue.jobs import BTC_MARKET_QUEUE, BTC_MINER_QUEUE, BTC_NETWORK_QUEUE, BTC_PRIMITIVE_QUEUE
+from mqnode.queue.redis_conn import get_redis
 
 router = APIRouter()
 
@@ -25,6 +28,7 @@ def _serialize_checkpoint(row: dict) -> dict:
         'status': row.get('status'),
         'error_message': row.get('error_message'),
         'updated_at': row.get('updated_at'),
+        'seconds_since_update': _seconds_since(row.get('updated_at')),
     }
 
 
@@ -34,11 +38,26 @@ def _seconds_since(ts: datetime | None) -> float | None:
     return max((datetime.now(timezone.utc) - ts).total_seconds(), 0.0)
 
 
+def _get_queue_depths(settings) -> tuple[dict[str, int], str | None]:
+    try:
+        redis = get_redis(settings)
+        return (
+            {
+                queue_name: Queue(queue_name, connection=redis).count
+                for queue_name in (BTC_PRIMITIVE_QUEUE, BTC_NETWORK_QUEUE, BTC_MINER_QUEUE, BTC_MARKET_QUEUE)
+            },
+            None,
+        )
+    except Exception as exc:
+        return ({}, str(exc))
+
+
 @router.get('/health')
 @router.get('/api/v1/btc/health')
 def health():
     settings = get_settings()
     checkpoints: list[dict] = []
+    queue_depths, redis_error = _get_queue_depths(settings)
     with DB(settings).cursor() as cur:
         cur.execute('SELECT * FROM sync_checkpoints WHERE chain = %s ORDER BY component, interval', ('BTC',))
         checkpoints = cur.fetchall()
@@ -63,6 +82,8 @@ def health():
     except Exception as exc:
         status = 'degraded'
         rpc_error = str(exc)
+    if redis_error:
+        status = 'degraded'
 
     raw_checkpoint = checkpoint_map.get((RAW_COMPONENT, 'block'), {})
     primitive_checkpoint = checkpoint_map.get((PRIMITIVE_COMPONENT, PRIMITIVE_INTERVAL), {})
@@ -121,6 +142,8 @@ def health():
             'last_canonical_price_bucket_time': price_table_state.get('last_bucket_time'),
             'lag_blocks': lag_blocks,
             'primitive_lag_blocks': primitive_lag_blocks,
+            'queue_depths': queue_depths,
+            'redis_error': redis_error,
             'checkpoints': {
                 'raw_ingestion': _serialize_checkpoint(raw_checkpoint),
                 'primitive_builder': _serialize_checkpoint(primitive_checkpoint),

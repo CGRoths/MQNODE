@@ -270,6 +270,7 @@ def build_10m_bucket_payload(
     bucket_start_utc: datetime,
     settings: Settings | None = None,
 ) -> dict[str, Any] | None:
+    """Aggregate one canonical 10-minute primitive bucket from block-level primitives."""
     settings = settings or get_settings()
     blocks = _fetch_blocks_for_bucket(cur, bucket_start_utc)
     state_row = _fetch_latest_chain_state(cur, bucket_start_utc)
@@ -296,7 +297,13 @@ def build_10m_bucket_payload(
     segwit_tx_count = sum(int(block['segwit_tx_count'] or 0) for block in blocks)
     sw_total_size_bytes = sum(int(block['sw_total_size_bytes'] or 0) for block in blocks)
     sw_total_weight_wu = sum(int(block['sw_total_weight_wu'] or 0) for block in blocks)
-    transferred_sat = total_out_sat + total_fee_sat
+    miner_revenue_sat = sum(
+        int(block.get('miner_revenue_sat') or ((block.get('issued_sat') or 0) + (block.get('total_fee_sat') or 0)))
+        for block in blocks
+    )
+    # `total_out_sat` includes coinbase outputs, so we remove claimed miner reward to keep transfer volume
+    # aligned with non-issuance transaction output flow.
+    transferred_sat = max(total_out_sat - miner_revenue_sat, 0)
     block_times = [event_time.timestamp() for block in blocks if (event_time := _event_time(block)) is not None]
     intervals = [right - left for left, right in zip(block_times, block_times[1:])]
     feerate_min_values = [block['min_feerate_sat_vb'] for block in blocks if block['min_feerate_sat_vb'] is not None]
@@ -319,7 +326,7 @@ def build_10m_bucket_payload(
         'last_block_time_utc': _event_time(last) if last else None,
         'issued_sat_10m': issued_sat,
         'fees_sat_10m': total_fee_sat,
-        'miner_revenue_sat_10m': issued_sat + total_fee_sat,
+        'miner_revenue_sat_10m': miner_revenue_sat,
         'supply_total_sat': supply_total_sat,
         'block_reward_sat_avg': safe_div(issued_sat, block_count),
         'halving_epoch': int(best_block_height_last // 210000) if best_block_height_last is not None else None,
@@ -353,7 +360,7 @@ def build_10m_bucket_payload(
         'spent_output_count_10m': input_count,
         'created_output_count_10m': output_count,
         'segwit_tx_count_10m': segwit_tx_count,
-        'segwit_share_10m': safe_div(segwit_tx_count, tx_count),
+        'segwit_share_10m': safe_div(segwit_tx_count, non_coinbase_tx_count),
         'sw_total_size_bytes_10m': sw_total_size_bytes,
         'sw_total_weight_wu_10m': sw_total_weight_wu,
         'difficulty_last': state_row['difficulty'] if state_row else None,

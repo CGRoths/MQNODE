@@ -6,6 +6,7 @@ from typing import Any
 
 from mqnode.chains.btc.ingest import ingest_block
 from mqnode.chains.btc.primitive_builder import PRIMITIVE_COMPONENT, PRIMITIVE_INTERVAL, PRIMITIVE_SCHEDULER_COMPONENT
+from mqnode.chains.btc.reorg import reconcile_reorg
 from mqnode.chains.btc.rpc import BitcoinRPC
 from mqnode.config.logging_config import configure_logging
 from mqnode.config.settings import Settings, get_settings
@@ -90,6 +91,14 @@ def _maybe_schedule_primitive_tick(db, last_height: int) -> bool:
 
 def sync_blocks_once(db, rpc: BitcoinRPC) -> dict[str, Any]:
     state = _load_ingestion_state(db)
+    reorg_result = reconcile_reorg(db, rpc, state['last_height'])
+    if reorg_result is not None:
+        logger.warning(
+            'listener_reorg_reconciled previous_checkpoint_height=%s common_height=%s',
+            reorg_result['previous_checkpoint_height'],
+            reorg_result['common_height'],
+        )
+        state = _load_ingestion_state(db)
     last_height = state['last_height']
     last_supply_sat = state['last_supply_sat']
     node_tip = rpc.get_block_count()
