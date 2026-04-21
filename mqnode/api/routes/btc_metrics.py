@@ -23,16 +23,34 @@ def nvt(
     end = end or datetime.now(timezone.utc)
     with DB(get_settings()).cursor() as cur:
         cur.execute(
-            f'''SELECT COUNT(*) AS count FROM {table} WHERE bucket_start_utc >= %s AND bucket_start_utc <= %s''',
+            f'''
+            SELECT COUNT(*) AS count
+            FROM {table}
+            WHERE bucket_start_utc >= %s
+              AND bucket_start_utc <= %s
+            ''',
             (start, end),
         )
         count = int(cur.fetchone()['count'])
         cur.execute(
-            f'''SELECT * FROM {table} WHERE bucket_start_utc >= %s AND bucket_start_utc <= %s ORDER BY bucket_start_utc LIMIT %s OFFSET %s''',
+            f'''
+            SELECT *
+            FROM {table}
+            WHERE bucket_start_utc >= %s
+              AND bucket_start_utc <= %s
+            ORDER BY bucket_start_utc
+            LIMIT %s OFFSET %s
+            ''',
             (start, end, limit, offset),
         )
         rows = cur.fetchall()
-    return {'count': count, 'limit': limit, 'offset': offset, 'interval': interval, 'items': rows}
+    return {
+        'count': count,
+        'limit': limit,
+        'offset': offset,
+        'interval': interval,
+        'items': rows,
+    }
 
 
 @router.get('/primitive', response_model=ListResponse)
@@ -47,16 +65,34 @@ def primitive(
     end = end or datetime.now(timezone.utc)
     with DB(get_settings()).cursor() as cur:
         cur.execute(
-            '''SELECT COUNT(*) AS count FROM btc_primitive_10m WHERE bucket_start_utc >= %s AND bucket_start_utc <= %s''',
+            '''
+            SELECT COUNT(*) AS count
+            FROM btc_primitive_10m
+            WHERE bucket_start_utc >= %s
+              AND bucket_start_utc <= %s
+            ''',
             (start, end),
         )
         count = int(cur.fetchone()['count'])
         cur.execute(
-            '''SELECT * FROM btc_primitive_10m WHERE bucket_start_utc >= %s AND bucket_start_utc <= %s ORDER BY bucket_start_utc LIMIT %s OFFSET %s''',
+            '''
+            SELECT *
+            FROM btc_primitive_10m
+            WHERE bucket_start_utc >= %s
+              AND bucket_start_utc <= %s
+            ORDER BY bucket_start_utc
+            LIMIT %s OFFSET %s
+            ''',
             (start, end, limit, offset),
         )
         rows = cur.fetchall()
-    return {'count': count, 'limit': limit, 'offset': offset, 'interval': interval, 'items': rows}
+    return {
+        'count': count,
+        'limit': limit,
+        'offset': offset,
+        'interval': interval,
+        'items': rows,
+    }
 
 
 @router.get('/price/canonical', response_model=ListResponse)
@@ -71,13 +107,31 @@ def canonical_price(
     end = end or datetime.now(timezone.utc)
     with DB(get_settings()).cursor() as cur:
         cur.execute(
-            '''SELECT COUNT(*) AS count FROM mq_btc_price_10m WHERE bucket_start_utc >= %s AND bucket_start_utc <= %s''',
+            '''
+            SELECT COUNT(*) AS count
+            FROM mq_btc_price_10m
+            WHERE bucket_start_utc >= %s
+              AND bucket_start_utc <= %s
+            ''',
             (start, end),
         )
         count = int(cur.fetchone()['count'])
         cur.execute(
-            '''SELECT * FROM mq_btc_price_10m WHERE bucket_start_utc >= %s AND bucket_start_utc <= %s ORDER BY bucket_start_utc LIMIT %s OFFSET %s''',
+            '''
+            SELECT *
+            FROM mq_btc_price_10m
+            WHERE bucket_start_utc >= %s
+              AND bucket_start_utc <= %s
+            ORDER BY bucket_start_utc
+            LIMIT %s OFFSET %s
+            ''',
             (start, end, limit, offset),
         )
         rows = cur.fetchall()
-    return {'count': count, 'limit': limit, 'offset': offset, 'interval': interval, 'items': rows}
+    return {
+        'count': count,
+        'limit': limit,
+        'offset': offset,
+        'interval': interval,
+        'items': rows,
+    }

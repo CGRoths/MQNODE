@@ -159,7 +159,11 @@ def test_rebuild_10m_bucket_is_idempotent(monkeypatch):
     })
     monkeypatch.setattr(primitive_builder, '_upsert_10m_bucket', lambda cur, payload: writes.append(dict(payload)))
     monkeypatch.setattr(primitive_builder, 'upsert_checkpoint', lambda cur, *args, **kwargs: checkpoints.append(kwargs))
-    monkeypatch.setattr(primitive_builder, 'enqueue_primitive_ready', lambda value, interval: enqueued.append((value, interval)))
+    monkeypatch.setattr(
+        primitive_builder,
+        'enqueue_primitive_ready',
+        lambda value, interval: enqueued.append((value, interval)),
+    )
 
     settings = SimpleNamespace(btc_price_table='mq_btc_price_10m')
     db = DummyDB()
@@ -184,7 +188,11 @@ def test_build_10m_bucket_zero_fills_and_carries_state_without_blocks(monkeypatc
     monkeypatch.setattr(primitive_builder, '_fetch_latest_chain_state', lambda cur, value: deepcopy(_state_row()))
     monkeypatch.setattr(primitive_builder, '_fetch_price_snapshot', lambda cur, settings, value: None)
 
-    payload = primitive_builder.build_10m_bucket_payload(object(), bucket, settings=SimpleNamespace(btc_price_table='mq_btc_price_10m'))
+    payload = primitive_builder.build_10m_bucket_payload(
+        object(),
+        bucket,
+        settings=SimpleNamespace(btc_price_table='mq_btc_price_10m'),
+    )
 
     assert payload is not None
     assert payload['block_count'] == 0
@@ -216,7 +224,11 @@ def test_build_10m_bucket_keeps_price_fields_when_price_exists(monkeypatch):
         },
     )
 
-    payload = primitive_builder.build_10m_bucket_payload(object(), bucket, settings=SimpleNamespace(btc_price_table='mq_btc_price_10m'))
+    payload = primitive_builder.build_10m_bucket_payload(
+        object(),
+        bucket,
+        settings=SimpleNamespace(btc_price_table='mq_btc_price_10m'),
+    )
 
     assert payload['tx_count_10m'] == 22
     assert payload['supply_total_sat'] == 100312500000

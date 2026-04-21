@@ -37,7 +37,9 @@ def upsert_checkpoint(
 ) -> None:
     cur.execute(
         '''
-        INSERT INTO sync_checkpoints(chain, component, interval, last_height, last_bucket_time, status, error_message, updated_at)
+        INSERT INTO sync_checkpoints(
+          chain, component, interval, last_height, last_bucket_time, status, error_message, updated_at
+        )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         ON CONFLICT (chain, component, interval)
         DO UPDATE SET

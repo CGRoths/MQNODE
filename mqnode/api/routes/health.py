@@ -7,10 +7,10 @@ from rq import Queue
 
 from mqnode.chains.btc.listener import RAW_COMPONENT
 from mqnode.chains.btc.primitive_builder import PRIMITIVE_COMPONENT, PRIMITIVE_INTERVAL
-from mqnode.market.price.checkpoints import PRICE_CANONICAL_COMPONENT
 from mqnode.chains.btc.rpc import BitcoinRPC
 from mqnode.config.settings import get_settings
 from mqnode.db.connection import DB
+from mqnode.market.price.checkpoints import PRICE_CANONICAL_COMPONENT
 from mqnode.queue.jobs import BTC_MARKET_QUEUE, BTC_MINER_QUEUE, BTC_NETWORK_QUEUE, BTC_PRIMITIVE_QUEUE
 from mqnode.queue.redis_conn import get_redis
 
@@ -121,7 +121,10 @@ def health():
     if checkpoint_errors:
         status = 'degraded'
 
-    latest_primitive_bucket_time = primitive_table_state.get('last_bucket_time') or primitive_checkpoint.get('last_bucket_time')
+    latest_primitive_bucket_time = (
+        primitive_table_state.get('last_bucket_time')
+        or primitive_checkpoint.get('last_bucket_time')
+    )
     latest_primitive_height = primitive_table_state.get('last_height') or primitive_last_height
     lag_blocks = None
     primitive_lag_blocks = None

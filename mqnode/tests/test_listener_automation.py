@@ -92,8 +92,14 @@ def test_idle_listener_schedules_single_primitive_tick(monkeypatch):
     monkeypatch.setattr(listener, 'utc_now', lambda: datetime(2026, 4, 21, 1, 4, tzinfo=timezone.utc))
 
     checkpoints = {
-        (listener.PRIMITIVE_SCHEDULER_COMPONENT, listener.PRIMITIVE_INTERVAL): {'last_bucket_time': datetime(2026, 4, 21, 0, 50, tzinfo=timezone.utc)},
-        (listener.PRIMITIVE_COMPONENT, listener.PRIMITIVE_INTERVAL): {'last_bucket_time': datetime(2026, 4, 21, 0, 50, tzinfo=timezone.utc)},
+        (
+            listener.PRIMITIVE_SCHEDULER_COMPONENT,
+            listener.PRIMITIVE_INTERVAL,
+        ): {'last_bucket_time': datetime(2026, 4, 21, 0, 50, tzinfo=timezone.utc)},
+        (
+            listener.PRIMITIVE_COMPONENT,
+            listener.PRIMITIVE_INTERVAL,
+        ): {'last_bucket_time': datetime(2026, 4, 21, 0, 50, tzinfo=timezone.utc)},
     }
 
     monkeypatch.setattr(

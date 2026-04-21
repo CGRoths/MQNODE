@@ -27,7 +27,7 @@ def _resolve_height_range(args, db, rpc: BitcoinRPC) -> tuple[int, int]:
     return args.start_height, args.end_height
 
 
-if __name__ == '__main__':
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument('--mode', choices=['full', 'resume', 'range'], default='resume')
     parser.add_argument('--start-height', type=int)
@@ -45,7 +45,11 @@ if __name__ == '__main__':
 
     with db.cursor() as cur:
         cur.execute(
-            'SELECT COALESCE(MAX(cumulative_supply_sat), 0) AS supply_total_sat FROM btc_primitive_block WHERE height < %s',
+            '''
+            SELECT COALESCE(MAX(cumulative_supply_sat), 0) AS supply_total_sat
+            FROM btc_primitive_block
+            WHERE height < %s
+            ''',
             (start_height,),
         )
         supply = int((cur.fetchone() or {}).get('supply_total_sat') or 0)
@@ -69,3 +73,7 @@ if __name__ == '__main__':
                     error_message=str(exc),
                 )
             raise
+
+
+if __name__ == '__main__':
+    main()

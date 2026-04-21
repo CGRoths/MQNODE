@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from statistics import mean
 from typing import Any
 
@@ -83,7 +83,11 @@ def parse_block(block: dict[str, Any], cumulative_supply_sat_prev: int) -> tuple
                 feerate_values_sat_vb.append(fee_sat / tx_vsize)
 
     fee_observations_complete = len(fee_values_sat) == non_coinbase_count
-    total_fee_sat = observed_fee_sat_total if fee_observations_complete else max(coinbase_reward_sat - max_subsidy_sat, 0)
+    total_fee_sat = (
+        observed_fee_sat_total
+        if fee_observations_complete
+        else max(coinbase_reward_sat - max_subsidy_sat, 0)
+    )
     # Supply should follow the subsidy actually created on-chain, not the headline reward cap.
     issued_sat = min(max(coinbase_reward_sat - total_fee_sat, 0), max_subsidy_sat)
     subsidy_sat = issued_sat
@@ -105,12 +109,23 @@ def parse_block(block: dict[str, Any], cumulative_supply_sat_prev: int) -> tuple
         'output_count': output_count,
         'block_size_bytes': block.get('size', 0),
         'block_weight_wu': block_weight_wu,
-        'block_vsize_vb': int(block.get('vsize') or ((block_weight_wu + 3) // 4 if block_weight_wu else block.get('strippedsize', 0) or 0)),
+        'block_vsize_vb': int(
+            block.get('vsize')
+            or ((block_weight_wu + 3) // 4 if block_weight_wu else block.get('strippedsize', 0) or 0)
+        ),
         'tx_size_total_bytes': tx_size_total_bytes,
         'tx_vsize_total_vb': tx_vsize_total_vb,
         'avg_fee_sat': mean(fee_values_sat) if fee_observations_complete and fee_values_sat else None,
-        'min_feerate_sat_vb': min(feerate_values_sat_vb) if fee_observations_complete and len(feerate_values_sat_vb) == non_coinbase_count else None,
-        'max_feerate_sat_vb': max(feerate_values_sat_vb) if fee_observations_complete and len(feerate_values_sat_vb) == non_coinbase_count else None,
+        'min_feerate_sat_vb': (
+            min(feerate_values_sat_vb)
+            if fee_observations_complete and len(feerate_values_sat_vb) == non_coinbase_count
+            else None
+        ),
+        'max_feerate_sat_vb': (
+            max(feerate_values_sat_vb)
+            if fee_observations_complete and len(feerate_values_sat_vb) == non_coinbase_count
+            else None
+        ),
         'segwit_tx_count': segwit_tx_count,
         'sw_total_size_bytes': sw_total_size_bytes,
         'sw_total_weight_wu': sw_total_weight_wu,

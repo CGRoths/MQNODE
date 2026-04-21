@@ -23,10 +23,13 @@ jobs:
           python -m pip install -r requirements.txt ruff
 
       - name: Lint
-        run: ruff check mqnode scripts
+        run: |
+          ruff check mqnode scripts
 
       - name: Test
-        run: python -m pytest -q
+        run: |
+          python -m pytest -q
 
       - name: Compile
-        run: python -m compileall mqnode scripts
+        run: |
+          python -m compileall mqnode scripts

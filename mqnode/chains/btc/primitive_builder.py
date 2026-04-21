@@ -374,7 +374,9 @@ def build_10m_bucket_payload(
         'low_price_usd': price_row['low_price_usd'] if price_row else None,
         'close_price_usd': close_price,
         'market_cap_usd': market_cap_usd,
-        'onchain_volume_usd_raw_10m': (transferred_sat / SATOSHI_PER_BTC) * close_price if close_price is not None else None,
+        'onchain_volume_usd_raw_10m': (
+            (transferred_sat / SATOSHI_PER_BTC) * close_price if close_price is not None else None
+        ),
         'updated_at': datetime.now(timezone.utc),
     }
 
@@ -433,7 +435,11 @@ def rebuild_10m_bucket_for_bucket(
 
     if emit_queue_event:
         enqueue_primitive_ready(bucket_start_utc, PRIMITIVE_INTERVAL)
-    logger.info('primitive_bucket_rebuilt bucket=%s last_height=%s', bucket_start_utc.isoformat(), payload['best_block_height_last'])
+    logger.info(
+        'primitive_bucket_rebuilt bucket=%s last_height=%s',
+        bucket_start_utc.isoformat(),
+        payload['best_block_height_last'],
+    )
     return bucket_start_utc
 
 
@@ -471,7 +477,12 @@ def catch_up_10m_to_bucket(
         if rebuilt_bucket is not None:
             rebuilt += 1
     if rebuilt:
-        logger.info('primitive_catch_up_complete start_bucket=%s end_bucket=%s rebuilt=%s', start_bucket, target_bucket, rebuilt)
+        logger.info(
+            'primitive_catch_up_complete start_bucket=%s end_bucket=%s rebuilt=%s',
+            start_bucket,
+            target_bucket,
+            rebuilt,
+        )
     return rebuilt
 
 

@@ -76,5 +76,16 @@ def calculate_nvt(db, bucket_start_utc: datetime, interval: str) -> None:
               version = EXCLUDED.version,
               updated_at = now()
             ''',
-            (bucket_start_utc, price_usd, supply_total_sat, market_cap_usd, transferred_sat, transferred_value_usd, nvt_raw, source_start, source_end, 'v1'),
+            (
+                bucket_start_utc,
+                price_usd,
+                supply_total_sat,
+                market_cap_usd,
+                transferred_sat,
+                transferred_value_usd,
+                nvt_raw,
+                source_start,
+                source_end,
+                'v1',
+            ),
         )

@@ -8,7 +8,7 @@ from mqnode.db.connection import DB
 from mqnode.db.repositories import get_checkpoint
 
 
-if __name__ == '__main__':
+def main() -> None:
     settings = get_settings()
     db = DB(settings)
     rpc = BitcoinRPC(settings)
@@ -27,3 +27,7 @@ if __name__ == '__main__':
             f'common_height={result["common_height"]} '
             f'affected_bucket={result["affected_bucket"]}'
         )
+
+
+if __name__ == '__main__':
+    main()

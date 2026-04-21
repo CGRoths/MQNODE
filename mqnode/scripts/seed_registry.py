@@ -1,13 +1,20 @@
+from __future__ import annotations
+
 from mqnode.config.settings import get_settings
 from mqnode.db.connection import DB
-
 
 SQL = '''
 INSERT INTO metric_registry(
   metric_name, chain, factor, module_path, function_name, interval, enabled, version, output_table, dependencies
 ) VALUES
-  ('nvt_raw', 'BTC', 'NETWORK', 'mqnode.metrics.btc.network.nvt', 'calculate_nvt', '10m', true, 'v1', 'btc_nvt_10m', '["btc_primitive_10m"]'::jsonb),
-  ('nvt_raw', 'BTC', 'NETWORK', 'mqnode.metrics.btc.network.nvt', 'calculate_nvt', '1h', true, 'v1', 'btc_nvt_1h', '["btc_primitive_10m"]'::jsonb)
+  (
+    'nvt_raw', 'BTC', 'NETWORK', 'mqnode.metrics.btc.network.nvt', 'calculate_nvt',
+    '10m', true, 'v1', 'btc_nvt_10m', '["btc_primitive_10m"]'::jsonb
+  ),
+  (
+    'nvt_raw', 'BTC', 'NETWORK', 'mqnode.metrics.btc.network.nvt', 'calculate_nvt',
+    '1h', true, 'v1', 'btc_nvt_1h', '["btc_primitive_10m"]'::jsonb
+  )
 ON CONFLICT (metric_name, chain, interval, version)
 DO UPDATE SET enabled = EXCLUDED.enabled, updated_at = now();
 '''
@@ -32,8 +39,12 @@ ON CONFLICT (source_name) DO UPDATE SET
   updated_at = now();
 '''
 
-if __name__ == '__main__':
+def main() -> None:
     with DB(get_settings()).cursor() as cur:
         cur.execute(SQL)
         cur.execute(PRICE_SOURCE_SQL)
     print('Metric registry seeded.')
+
+
+if __name__ == '__main__':
+    main()

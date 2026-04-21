@@ -1,7 +1,4 @@
-from mqnode.scripts.init_db import run_migrations
-from mqnode.db.connection import DB
-from mqnode.config.settings import get_settings
+from mqnode.scripts.ingest_price_source import main
 
 if __name__ == '__main__':
-    import runpy
-    runpy.run_module('mqnode.scripts.ingest_price_source', run_name='__main__')
+    main()

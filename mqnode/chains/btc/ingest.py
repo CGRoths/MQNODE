@@ -17,7 +17,10 @@ def ingest_block(cur, rpc: BitcoinRPC, height: int, last_supply_sat: int) -> int
     block_hash = rpc.get_block_hash(height)
     block = rpc.get_block(block_hash)
     if int(block['height']) != int(height):
-        raise ValidationError(f'Block height mismatch: requested height={height}, rpc returned height={block["height"]}')
+        raise ValidationError(
+            f'Block height mismatch: requested height={height}, '
+            f'rpc returned height={block["height"]}'
+        )
     raw, primitive = parse_block(block, cumulative_supply_sat_prev=last_supply_sat)
 
     if height > 0:
