@@ -6,50 +6,47 @@ from mqnode.config.settings import get_settings
 from mqnode.market.price.normalize import normalize_ohlcv_bucket
 from mqnode.market.price.source_support import default_db, get_ingestion_window, request_json, upsert_source_rows
 
-API_URL = 'https://www.okx.com/api/v5/market/history-candles'
-SOURCE_NAME = 'okx'
-TABLE_NAME = 'okx_price_10m'
-SYMBOL = 'BTC-USDT'
+API_URL = 'https://api.kraken.com/0/public/OHLC'
+SOURCE_NAME = 'kraken'
+TABLE_NAME = 'kraken_price_10m'
+SYMBOL = 'XBT/USD'
 
 
 def fetch_buckets(db=None, settings=None) -> int:
-    """Fetch recent direct 10-minute OKX spot candles and upsert them idempotently."""
+    """Fetch direct 10-minute Kraken spot OHLC candles and upsert them idempotently."""
     settings = settings or get_settings()
     db = default_db(db)
     start_bucket, end_bucket = get_ingestion_window(db, SOURCE_NAME)
-    rows = []
-
     payload = request_json(
         API_URL,
         params={
-            'instId': SYMBOL,
-            'bar': '10m',
-            'limit': 300,
+            'pair': 'XBTUSD',
+            'interval': 10,
+            'since': int(start_bucket.timestamp()),
         },
         timeout=getattr(settings, 'price_request_timeout_seconds', 30),
     )
-    candles = sorted(payload.get('data', []), key=lambda row: int(row[0]))
+
+    result = payload.get('result', {})
+    pair_key = next((key for key in result if key != 'last'), None)
+    candles = result.get(pair_key, []) if pair_key else []
+    rows = []
     for candle in candles:
-        open_time_ms = int(candle[0])
-        bucket_time = datetime.fromtimestamp(open_time_ms / 1000, tz=timezone.utc)
-        if bucket_time < start_bucket or bucket_time >= end_bucket:
-            continue
-        # OKX exposes multiple volume fields; we prefer quote turnover when present.
-        volume_usd = float(candle[7]) if len(candle) > 7 and candle[7] not in (None, '') else None
-        if len(candle) > 8 and candle[8] == '0':
+        open_time = datetime.fromtimestamp(int(float(candle[0])), tz=timezone.utc)
+        if open_time >= end_bucket:
             continue
         rows.append(
             normalize_ohlcv_bucket(
                 SOURCE_NAME,
-                bucket_time,
+                open_time,
                 symbol=SYMBOL,
                 open_price_usd=float(candle[1]),
                 high_price_usd=float(candle[2]),
                 low_price_usd=float(candle[3]),
                 close_price_usd=float(candle[4]),
-                volume_btc=float(candle[5]),
-                volume_usd=volume_usd,
-                raw_payload={'kline': candle},
+                volume_btc=float(candle[6]),
+                trade_count=int(float(candle[7])),
+                raw_payload={'candle': candle},
                 source_updated_at=datetime.now(timezone.utc),
             )
         )

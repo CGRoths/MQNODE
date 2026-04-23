@@ -9,6 +9,7 @@ from mqnode.config.logging_config import configure_logging
 from mqnode.config.settings import Settings, get_settings
 from mqnode.db.connection import DB
 from mqnode.market.price.composer import catch_up_canonical_price_from_checkpoint
+from mqnode.market.price.registry import get_price_source
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,10 @@ def run_price_composer(settings: Settings | None = None) -> None:
         time.sleep(settings.price_composer_sleep_seconds)
 
 
-def run_price_source_ingestion_once(source_name: str) -> int:
+def run_price_source_ingestion_once(source_name: str, settings: Settings | None = None) -> int:
+    settings = settings or get_settings()
+    db = DB(settings)
+    get_price_source(source_name)
     module = import_module(f'mqnode.market.price.sources.{source_name}')
     fetch_buckets = getattr(module, 'fetch_buckets', None)
     if fetch_buckets is None:
@@ -40,7 +44,7 @@ def run_price_source_ingestion_once(source_name: str) -> int:
             f'Price source {source_name} has no fetch_buckets() implementation yet. '
             'Use this runtime boundary to add source-specific ingestion without changing the rest of MQNODE.'
         )
-    return int(fetch_buckets())
+    return int(fetch_buckets(db=db, settings=settings))
 
 
 def main() -> None:
@@ -62,7 +66,7 @@ def main() -> None:
 
     if not args.source:
         raise ValueError('--source is required for ingest-source mode')
-    processed = run_price_source_ingestion_once(args.source)
+    processed = run_price_source_ingestion_once(args.source, settings=settings)
     logger.info('price_source_ingestion_once source=%s processed=%s', args.source, processed)
 
 

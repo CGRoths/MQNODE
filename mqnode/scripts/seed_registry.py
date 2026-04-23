@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from mqnode.config.settings import get_settings
 from mqnode.db.connection import DB
+from mqnode.market.price.registry import get_price_sources
 
 SQL = '''
 INSERT INTO metric_registry(
@@ -22,11 +23,7 @@ DO UPDATE SET enabled = EXCLUDED.enabled, updated_at = now();
 PRICE_SOURCE_SQL = '''
 INSERT INTO mq_price_source_registry(
   source_name, table_name, asset_symbol, base_asset, quote_asset, interval, priority_rank, enabled, notes
-) VALUES
-  ('bitstamp', 'bitstamp_price_10m', 'BTCUSD', 'BTC', 'USD', '10m', 1, true, 'Long-history anchor venue.'),
-  ('bybit', 'bybit_price_10m', 'BTCUSD', 'BTC', 'USD', '10m', 2, true, 'Crypto-native spot venue.'),
-  ('binance', 'binance_price_10m', 'BTCUSD', 'BTC', 'USD', '10m', 3, true, 'Major global liquidity source.'),
-  ('okx', 'okx_price_10m', 'BTCUSD', 'BTC', 'USD', '10m', 4, true, 'Supplementary major spot venue.')
+) VALUES (%s, %s, %s, %s, %s, %s, %s, true, %s)
 ON CONFLICT (source_name) DO UPDATE SET
   table_name = EXCLUDED.table_name,
   asset_symbol = EXCLUDED.asset_symbol,
@@ -42,7 +39,20 @@ ON CONFLICT (source_name) DO UPDATE SET
 def main() -> None:
     with DB(get_settings()).cursor() as cur:
         cur.execute(SQL)
-        cur.execute(PRICE_SOURCE_SQL)
+        for source in get_price_sources():
+            cur.execute(
+                PRICE_SOURCE_SQL,
+                (
+                    source.source_name,
+                    source.table_name,
+                    source.asset_symbol,
+                    source.base_asset,
+                    source.quote_asset,
+                    source.interval,
+                    source.priority_rank,
+                    source.notes,
+                ),
+            )
     print('Metric registry seeded.')
 
 

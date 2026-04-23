@@ -6,14 +6,14 @@ from mqnode.config.settings import get_settings
 from mqnode.market.price.normalize import normalize_ohlcv_bucket
 from mqnode.market.price.source_support import default_db, get_ingestion_window, request_json, upsert_source_rows
 
-API_URL = 'https://api.binance.com/api/v3/klines'
-SOURCE_NAME = 'binance'
-TABLE_NAME = 'binance_price_10m'
-SYMBOL = 'BTCUSDT'
+API_URL = 'https://api-pub.bitfinex.com/v2/candles/trade:10m:tBTCUSD/hist'
+SOURCE_NAME = 'bitfinex'
+TABLE_NAME = 'bitfinex_price_10m'
+SYMBOL = 'tBTCUSD'
 
 
 def fetch_buckets(db=None, settings=None) -> int:
-    """Fetch direct 10-minute Binance spot candles and upsert them idempotently."""
+    """Fetch direct 10-minute Bitfinex candles and upsert them idempotently."""
     settings = settings or get_settings()
     db = default_db(db)
     start_bucket, end_bucket = get_ingestion_window(db, SOURCE_NAME)
@@ -25,10 +25,9 @@ def fetch_buckets(db=None, settings=None) -> int:
         candles = request_json(
             API_URL,
             params={
-                'symbol': SYMBOL,
-                'interval': '10m',
-                'startTime': start_ms,
-                'endTime': end_ms,
+                'sort': 1,
+                'start': start_ms,
+                'end': end_ms,
                 'limit': 1000,
             },
             timeout=getattr(settings, 'price_request_timeout_seconds', 30),
@@ -44,14 +43,12 @@ def fetch_buckets(db=None, settings=None) -> int:
                     datetime.fromtimestamp(open_time_ms / 1000, tz=timezone.utc),
                     symbol=SYMBOL,
                     open_price_usd=float(candle[1]),
-                    high_price_usd=float(candle[2]),
-                    low_price_usd=float(candle[3]),
-                    close_price_usd=float(candle[4]),
+                    high_price_usd=float(candle[3]),
+                    low_price_usd=float(candle[4]),
+                    close_price_usd=float(candle[2]),
                     volume_btc=float(candle[5]),
-                    volume_usd=float(candle[7]),
-                    trade_count=int(candle[8]),
-                    raw_payload={'kline': candle},
-                    source_updated_at=datetime.fromtimestamp(int(candle[6]) / 1000, tz=timezone.utc),
+                    raw_payload={'candle': candle},
+                    source_updated_at=datetime.now(timezone.utc),
                 )
             )
 
